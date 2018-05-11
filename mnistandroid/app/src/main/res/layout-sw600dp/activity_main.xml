@@ -51,12 +51,13 @@
                 android:layout_weight="0.50"
                 android:text="Predict"/>
 
-            <Button
-                android:id="@+id/btn_class1"
+            <TextView android:id="@+id/simpleTextView"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_weight="0.50"
-                android:text="Predict"/>
+                android:textSize="30sp"
+                android:gravity="center"
+                android:text="Probabily" />
         </LinearLayout>
 
     </LinearLayout>
