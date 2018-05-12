@@ -71,23 +71,14 @@ public class TensorFlowClassifier implements Classifier {
         c.inputName = inputName;
         c.outputName = outputName;
 
-        //read labels for label file
-        c.labels = readLabels(assetManager, labelFile);
-
         //set its model path and where the raw asset files are
         c.tfHelper = new TensorFlowInferenceInterface(assetManager, modelPath);
-        int numClasses = 10;
-
-        //how big is the input?
-        c.inputSize = inputSize;
+        int numClasses = 2;
 
         // Pre-allocate buffer.
         c.outputNames = new String[] { outputName };
 
         c.outputName = outputName;
-        c.output = new float[numClasses];
-
-        c.feedKeepProb = feedKeepProb;
 
         return c;
     }
@@ -103,12 +94,8 @@ public class TensorFlowClassifier implements Classifier {
         //using the interface
         //give it the input name, raw pixels from the drawing,
         //input size
-        tfHelper.feed(inputName, pixels, 1, inputSize, inputSize, 1);
+        tfHelper.feed(inputName, pixels, 1, 224, 224, 1);
 
-        //probabilities
-        if (feedKeepProb) {
-            tfHelper.feed("keep_prob", new float[] { 1 });
-        }
         //get the possible outputs
         tfHelper.run(outputNames);
 

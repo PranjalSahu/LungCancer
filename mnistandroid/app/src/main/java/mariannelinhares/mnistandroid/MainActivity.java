@@ -22,13 +22,17 @@ package mariannelinhares.mnistandroid;
 
 //An activity is a single, focused thing that the user can do. Almost all activities interact with the user,
 //so the Activity class takes care of creating a window for you in which you can place your UI with setContentView(View)
+import android.Manifest;
 import android.app.Activity;
 //PointF holds two float coordinates
+import android.content.pm.PackageManager;
 import android.graphics.PointF;
 //A mapping from String keys to various Parcelable values (interface for data container values, parcels)
+import android.media.Image;
 import android.os.Bundle;
 //Object used to report movement (mouse, pen, finger, trackball) events.
 // //Motion events may hold either absolute or relative movements and other data, depending on the type of device.
+import android.support.v4.app.ActivityCompat;
 import android.view.MotionEvent;
 //This class represents the basic building block for user interface components.
 // A View occupies a rectangular area on the screen and is responsible for drawing
@@ -36,10 +40,15 @@ import android.view.View;
 //A user interface element the user can tap or click to perform an action.
 import android.widget.Button;
 //A user interface element that displays text to the user. To provide user-editable text, see EditText.
+import android.widget.ImageView;
 import android.widget.TextView;
 //Resizable-array implementation of the List interface. Implements all optional list operations, and permits all elements,
 // including null. In addition to implementing the List interface, this class provides methods to
 // //manipulate the size of the array that is used internally to store the list.
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 // basic list
 import java.util.List;
@@ -54,14 +63,18 @@ import mariannelinhares.mnistandroid.views.DrawModel;
 //class for drawing the entire app
 import mariannelinhares.mnistandroid.views.DrawView;
 
+import android.graphics.BitmapFactory;
+
 public class MainActivity extends Activity implements View.OnClickListener, View.OnTouchListener {
 
     private static final int PIXEL_WIDTH = 28;
+    private final int FLAG_TO_READ = 1;
 
     // ui elements
     private Button clearBtn, classBtn;
     private TextView resText;
     private List<Classifier> mClassifiers = new ArrayList<>();
+    private ImageView mainimageview;
 
     // views
     private DrawModel drawModel;
@@ -86,6 +99,25 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         // res text
         //this is the text that shows the output of the classification
         resText = (TextView) findViewById(R.id.tfRes);
+
+        mainimageview = (ImageView) findViewById(R.id.imageView1);
+
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 225);
+
+        if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            try (FileInputStream in = new FileInputStream(new File("/storage/self/primary/Pictures/convertedpng/000003.dcm.png"))) {
+                mainimageview.setImageBitmap(BitmapFactory.decodeStream(in));
+                System.out.println("Image is set in the ImageView");
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        else{
+            System.out.println("Error file read permission has not been granted");
+        }
+
 
         // tensorflow
         //load up our saved model to perform inference from local storage
