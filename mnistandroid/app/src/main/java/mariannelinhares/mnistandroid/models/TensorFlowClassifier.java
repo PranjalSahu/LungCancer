@@ -44,16 +44,20 @@ public class TensorFlowClassifier implements Classifier {
     //given a saved drawn model, lets read all the classification labels that are
     //stored and write them to our in memory labels list
     private static List<String> readLabels(AssetManager am, String fileName) throws IOException {
-        BufferedReader br = new BufferedReader(new InputStreamReader(am.open(fileName)));
-
-        String line;
-        List<String> labels = new ArrayList<>();
-        while ((line = br.readLine()) != null) {
-            labels.add(line);
-        }
-
-        br.close();
-        return labels;
+//        BufferedReader br = new BufferedReader(new InputStreamReader(am.open(fileName)));
+//
+//        String line;
+//        List<String> labels = new ArrayList<>();
+//        while ((line = br.readLine()) != null) {
+//            labels.add(line);
+//        }
+//
+//        br.close();
+//        return labels;
+        List<String> arr = new ArrayList<>();
+        arr.add("Benign");
+        arr.add("Malignant");
+        return arr;
     }
 
    //given a model, its label file, and its metadata
@@ -70,6 +74,9 @@ public class TensorFlowClassifier implements Classifier {
 
         c.inputName = inputName;
         c.outputName = outputName;
+        c.output = new float[2];
+
+        c.labels = readLabels(assetManager, labelFile);
 
         //set its model path and where the raw asset files are
         c.tfHelper = new TensorFlowInferenceInterface(assetManager, modelPath);
@@ -94,7 +101,7 @@ public class TensorFlowClassifier implements Classifier {
         //using the interface
         //give it the input name, raw pixels from the drawing,
         //input size
-        tfHelper.feed(inputName, pixels, 1, 224, 224, 1);
+        tfHelper.feed(inputName, pixels, 1, 224, 224, 3);
 
         //get the possible outputs
         tfHelper.run(outputNames);

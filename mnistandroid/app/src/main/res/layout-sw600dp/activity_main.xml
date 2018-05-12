@@ -24,8 +24,16 @@
             android:layout_weight="0.70"
             android:scaleType="fitStart"
             android:src="@android:color/holo_blue_dark"
-            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
             android:layout_marginRight="10dp"/>
+
+        <TextView android:id="@+id/simpleTextView4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:text="Z position"/>
 
         <SeekBar
             android:id="@+id/seekBar"

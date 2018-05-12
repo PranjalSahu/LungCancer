@@ -26,13 +26,16 @@ import android.Manifest;
 import android.app.Activity;
 //PointF holds two float coordinates
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.PointF;
 //A mapping from String keys to various Parcelable values (interface for data container values, parcels)
 import android.media.Image;
 import android.os.Bundle;
 //Object used to report movement (mouse, pen, finger, trackball) events.
 // //Motion events may hold either absolute or relative movements and other data, depending on the type of device.
+import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
+import android.util.Log;
 import android.view.MotionEvent;
 //This class represents the basic building block for user interface components.
 // A View occupies a rectangular area on the screen and is responsible for drawing
@@ -41,6 +44,7 @@ import android.view.View;
 import android.widget.Button;
 //A user interface element that displays text to the user. To provide user-editable text, see EditText.
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 //Resizable-array implementation of the List interface. Implements all optional list operations, and permits all elements,
 // including null. In addition to implementing the List interface, this class provides methods to
@@ -65,6 +69,8 @@ import mariannelinhares.mnistandroid.views.DrawView;
 
 import android.graphics.BitmapFactory;
 
+import static android.content.ContentValues.TAG;
+
 public class MainActivity extends Activity implements View.OnClickListener, View.OnTouchListener {
 
     private static final int PIXEL_WIDTH = 28;
@@ -83,6 +89,29 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     private float mLastX;
     private float mLastY;
 
+    private int[] intValues;
+    private float[] floatValues;
+
+    void read_the_input_image(){
+        // reading the image file to get the time taken to get the inference
+        File imgFile = new  File("/sdcard/Pictures/1.jpg");
+        Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+
+        // array to read all the pixel values which will feed into the tensorflow model
+        intValues = new int[myBitmap.getHeight() * myBitmap.getWidth()];
+        floatValues = new float[myBitmap.getHeight() * myBitmap.getWidth() * 3];
+        myBitmap.getPixels(intValues, 0, myBitmap.getWidth(), 0, 0, myBitmap.getWidth(), myBitmap.getHeight());
+        for (int i = 0; i < intValues.length; ++i) {
+            final int val = intValues[i];
+            floatValues[i * 3] = ((val >> 16) & 0xFF) / 255.0f;
+            floatValues[i * 3 + 1] = ((val >> 8) & 0xFF) / 255.0f;
+            floatValues[i * 3 + 2] = (val & 0xFF) / 255.0f;
+        }
+
+        Log.d("TIME_TO_FEED", "Height of the Image is: " + Integer.toString(myBitmap.getHeight())+" : Widht is : "+Integer.toString(myBitmap.getWidth()));
+
+        return;
+    }
     @Override
     // In the onCreate() method, you perform basic application startup logic that should happen
     //only once for the entire life of the activity.
@@ -119,6 +148,32 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         }
 
 
+        // read the input image to be passed to the tensorflow classifier model
+        read_the_input_image();
+
+        SeekBar seekBar = (SeekBar)findViewById(R.id.seekBar);
+        final TextView seekBarValue = (TextView)findViewById(R.id.simpleTextView4);
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+
+           @Override
+           public void onProgressChanged(SeekBar seekBar, int progress,
+           boolean fromUser) {
+               // TODO Auto-generated method stub
+               seekBarValue.setText("Z position "+String.valueOf(progress));
+           }
+
+           @Override
+           public void onStartTrackingTouch(SeekBar seekBar) {
+               // TODO Auto-generated method stub
+           }
+
+           @Override
+           public void onStopTrackingTouch(SeekBar seekBar) {
+               // TODO Auto-generated method stub
+           }
+       });
+
         // tensorflow
         //load up our saved model to perform inference from local storage
         loadModel();
@@ -154,8 +209,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     //the tensorflow classifier and the keras classifier
                     mClassifiers.add(
                             TensorFlowClassifier.create(getAssets(), "TensorFlow",
-                                    "opt_mnist_convnet-tf.pb", "labels.txt", PIXEL_WIDTH,
-                                    "input", "output", true));
+                                    "model.h5.pb", "labels.txt", PIXEL_WIDTH,
+                                    "input_1", "output_node0", true));
                     mClassifiers.add(
                             TensorFlowClassifier.create(getAssets(), "Keras",
                                     "opt_mnist_convnet-keras.pb", "labels.txt", PIXEL_WIDTH,
@@ -171,9 +226,13 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     @Override
     public void onClick(View view) {
         if (view.getId() == R.id.btn_class) {
-            //if the user clicks the classify button
-            //get the pixel data and store it in an array
-//            float pixels[] = drawView.getPixelData();
+            Classifier classifier = mClassifiers.get(0);
+            long startTime = SystemClock.uptimeMillis();
+            final Classification res = classifier.recognize(floatValues);
+            long endTime = SystemClock.uptimeMillis();
+            Log.d("TIME_TO_FEED", "Timecost to model inference: " + Long.toString(endTime - startTime));
+
+
 //
 //            //init an empty string to fill with the classification output
 //            String text = "";
