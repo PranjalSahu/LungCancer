@@ -5,10 +5,13 @@ android {
     buildToolsVersion "25.0.2"
     defaultConfig {
         applicationId "mariannelinhares.mnistandroid"
-        minSdkVersion 15
+        minSdkVersion 23
         targetSdkVersion 25
         versionCode 1
         versionName "1.0"
+        jackOptions {
+            enabled true
+        }
     }
     buildTypes {
         release {
@@ -16,9 +19,27 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+allprojects {
+    repositories {
+        jcenter()
+    }
+}
+
+dependencies {
+    compile 'org.tensorflow:tensorflow-android:+'
 }
 
 dependencies {
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'org.tensorflow:tensorflow-android:1.2.0-rc0'
+    compile fileTree(dir: 'libs', include: ['*.jar'])
 }

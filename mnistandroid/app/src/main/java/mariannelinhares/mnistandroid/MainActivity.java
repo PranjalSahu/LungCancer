@@ -20,6 +20,11 @@ package mariannelinhares.mnistandroid;
    /DrawModel.java
 */
 
+import static android.content.ContentValues.TAG;
+//import flanagan.interpolation.*;
+//import flanagan.io.*;
+
+
 //An activity is a single, focused thing that the user can do. Almost all activities interact with the user,
 //so the Activity class takes care of creating a window for you in which you can place your UI with setContentView(View)
 import android.Manifest;
@@ -58,6 +63,7 @@ import java.util.ArrayList;
 import java.util.List;
 //encapsulates a classified image
 //public interface to the classification class, exposing a name and the recognize function
+import flanagan.interpolation.*;
 import mariannelinhares.mnistandroid.models.Classifier;
 import mariannelinhares.mnistandroid.models.Classification;
 //contains logic for reading labels, creating classifier, and classifying
@@ -69,7 +75,7 @@ import mariannelinhares.mnistandroid.views.DrawView;
 
 import android.graphics.BitmapFactory;
 
-import static android.content.ContentValues.TAG;
+
 
 public class MainActivity extends Activity implements View.OnClickListener, View.OnTouchListener {
 
@@ -78,9 +84,16 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
     // ui elements
     private Button clearBtn, classBtn;
+    private TextView probtext;
     private TextView resText;
+
     private List<Classifier> mClassifiers = new ArrayList<>();
+
     private ImageView mainimageview;
+    private ImageView axial;
+    private ImageView coronal;
+    private ImageView sagittal;
+    private ImageView selectedSection;
 
     // views
     private DrawModel drawModel;
@@ -92,6 +105,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     private int[] intValues;
     private float[] floatValues;
 
+
     void read_the_input_image(){
         // reading the image file to get the time taken to get the inference
         File imgFile = new  File("/sdcard/Pictures/1.jpg");
@@ -99,7 +113,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         // array to read all the pixel values which will feed into the tensorflow model
         intValues = new int[myBitmap.getHeight() * myBitmap.getWidth()];
-        floatValues = new float[myBitmap.getHeight() * myBitmap.getWidth() * 3];
+        floatValues = new float[myBitmap.getHeight() * myBitmap.getWidth() * 3*10];
         myBitmap.getPixels(intValues, 0, myBitmap.getWidth(), 0, 0, myBitmap.getWidth(), myBitmap.getHeight());
         for (int i = 0; i < intValues.length; ++i) {
             final int val = intValues[i];
@@ -125,11 +139,27 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         classBtn = (Button) findViewById(R.id.btn_class);
         classBtn.setOnClickListener(this);
 
+        double[] x1 = {0.0,	1.0, 2.0, 3.0, 4.0, 5.0};
+        double[] x2 = {1.0, 5.0, 9.0, 13.0, 17.0, 21.0, 25.0, 29.0, 33.0, 37.0};
+        double[] x3 = {6.0,	7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
+        double[][][] y     = new double[6][10][7];
+        TriCubicInterpolation tci3 = new TriCubicInterpolation(x1, x2, x3, y, 0);
+        double xx1 = 0.0;
+        double xx2 = 0.0;
+        double xx3 = 0.0;
+        double y3 = 0.0;
+        tci3.interpolate(0.0, 0.0, 0.0);
+
         // res text
         //this is the text that shows the output of the classification
         resText = (TextView) findViewById(R.id.tfRes);
+        resText = (TextView) findViewById(R.id.tfRes);
 
         mainimageview = (ImageView) findViewById(R.id.imageView1);
+        axial = (ImageView) findViewById(R.id.imageView21);
+        coronal = (ImageView) findViewById(R.id.imageView23);
+        sagittal = (ImageView) findViewById(R.id.imageView24);
+        selectedSection = (ImageView) findViewById(R.id.imageView6);;
 
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 225);
 
@@ -142,6 +172,26 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+            FileInputStream ina = null;
+            FileInputStream inb = null;
+            FileInputStream inc = null;
+            FileInputStream ind = null;
+            try {
+                ina = new FileInputStream(new File("/storage/self/primary/Pictures/1_a.jpg"));
+                inb = new FileInputStream(new File("/storage/self/primary/Pictures/2_a.jpg"));
+                inc = new FileInputStream(new File("/storage/self/primary/Pictures/3_a.jpg"));
+                ind = new FileInputStream(new File("/storage/self/primary/Pictures/3_a_224.jpg"));
+
+                axial.setImageBitmap(BitmapFactory.decodeStream(ina));
+                coronal.setImageBitmap(BitmapFactory.decodeStream(inb));
+                sagittal.setImageBitmap(BitmapFactory.decodeStream(inc));
+                selectedSection.setImageBitmap(BitmapFactory.decodeStream(ind));
+
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
         }
         else{
             System.out.println("Error file read permission has not been granted");
@@ -153,6 +203,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         SeekBar seekBar = (SeekBar)findViewById(R.id.seekBar);
         final TextView seekBarValue = (TextView)findViewById(R.id.simpleTextView4);
+
+        probtext = (TextView)findViewById(R.id.simpleTextView);
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
 
@@ -231,7 +283,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             final Classification res = classifier.recognize(floatValues);
             long endTime = SystemClock.uptimeMillis();
             Log.d("TIME_TO_FEED", "Timecost to model inference: " + Long.toString(endTime - startTime));
-
+            probtext.setText("0.86");
 
 //
 //            //init an empty string to fill with the classification output
