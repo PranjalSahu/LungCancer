@@ -74,7 +74,7 @@ public class TensorFlowClassifier implements Classifier {
 
         c.inputName = inputName;
         c.outputName = outputName;
-        c.output = new float[2];
+        c.output = new float[20];
 
         c.labels = readLabels(assetManager, labelFile);
 
@@ -101,7 +101,7 @@ public class TensorFlowClassifier implements Classifier {
         //using the interface
         //give it the input name, raw pixels from the drawing,
         //input size
-        tfHelper.feed(inputName, pixels, 1, 224, 224, 3);
+        tfHelper.feed(inputName, pixels, 10, 224, 224, 3);
 
         //get the possible outputs
         tfHelper.run(outputNames);
@@ -114,7 +114,8 @@ public class TensorFlowClassifier implements Classifier {
         //if its above the threshold for accuracy we predefined
         //write it out to the view
         Classification ans = new Classification();
-        for (int i = 0; i < output.length; ++i) {
+        System.out.println("Pranjal length of output is "+Integer.toString(output.length) );
+        for (int i = 0; i < output.length/10; ++i) {
             System.out.println(output[i]);
             System.out.println(labels.get(i));
             if (output[i] > THRESHOLD && output[i] > ans.getConf()) {

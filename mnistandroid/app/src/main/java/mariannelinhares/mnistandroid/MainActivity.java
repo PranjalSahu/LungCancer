@@ -139,16 +139,19 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         classBtn = (Button) findViewById(R.id.btn_class);
         classBtn.setOnClickListener(this);
 
-        double[] x1 = {0.0,	1.0, 2.0, 3.0, 4.0, 5.0};
-        double[] x2 = {1.0, 5.0, 9.0, 13.0, 17.0, 21.0, 25.0, 29.0, 33.0, 37.0};
-        double[] x3 = {6.0,	7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
-        double[][][] y     = new double[6][10][7];
-        TriCubicInterpolation tci3 = new TriCubicInterpolation(x1, x2, x3, y, 0);
-        double xx1 = 0.0;
-        double xx2 = 0.0;
-        double xx3 = 0.0;
-        double y3 = 0.0;
-        tci3.interpolate(0.0, 0.0, 0.0);
+//        double[] x1 = {0.0,	1.0, 2.0, 3.0, 4.0, 5.0};
+//        double[] x2 = {1.0, 5.0, 9.0, 13.0, 17.0, 21.0, 25.0, 29.0, 33.0, 37.0};
+//        double[] x3 = {6.0,	7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
+//        double[][][] y     = new double[6][10][7];
+//        TriCubicInterpolation tci3 = new TriCubicInterpolation(x1, x2, x3, y, 0);
+//        double xx1 = 0.0;
+//        double xx2 = 0.0;
+//        double xx3 = 0.0;
+//        double y3  = 0.0;
+//        //double ans = tci3.interpolate(3.2, 5.2, 10.5);
+//        double ans = tci3.interpolate(0, 0, 0);
+//        System.out.println("Output of interpolation is "+ans);
+
 
         // res text
         //this is the text that shows the output of the classification
@@ -164,14 +167,25 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 225);
 
         if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            try (FileInputStream in = new FileInputStream(new File("/storage/self/primary/Pictures/convertedpng/000003.dcm.png"))) {
-                mainimageview.setImageBitmap(BitmapFactory.decodeStream(in));
-                System.out.println("Image is set in the ImageView");
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+            File directory = new File("/storage/self/primary/Pictures/convertedpng/");
+            File[] files = directory.listFiles();
+            ArrayList<Bitmap> ctarray = new ArrayList<Bitmap>();
+
+            System.out.println("Reading CT files");
+
+            for(int fi=0; fi<files.length;++fi){
+                FileInputStream in = null;
+                try {
+                    in = new FileInputStream(new File(files[fi].getPath()));
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                ctarray.add(BitmapFactory.decodeStream(in));
             }
+
+            mainimageview.setImageBitmap(ctarray.get(0));
+            System.out.println("Image is set in the ImageView");
+
 
             FileInputStream ina = null;
             FileInputStream inb = null;
