@@ -32,6 +32,7 @@ import android.app.Activity;
 //PointF holds two float coordinates
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.graphics.PointF;
 //A mapping from String keys to various Parcelable values (interface for data container values, parcels)
 import android.media.Image;
@@ -97,6 +98,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     private ImageView sagittal;
     private ImageView selectedSection;
 
+    int currentSection = 0;
+
     // views
     private DrawModel drawModel;
     private PointF    mTmpPiont = new PointF();
@@ -161,8 +164,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         resText = (TextView) findViewById(R.id.tfRes);
 
         mainimageview = (ImageView) findViewById(R.id.imageView1);
-        axial = (ImageView) findViewById(R.id.imageView21);
-        coronal = (ImageView) findViewById(R.id.imageView23);
+        axial    = (ImageView) findViewById(R.id.imageView21);
+        coronal  = (ImageView) findViewById(R.id.imageView23);
         sagittal = (ImageView) findViewById(R.id.imageView24);
         selectedSection = (ImageView) findViewById(R.id.imageView6);;
 
@@ -186,7 +189,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 ctarray.add(BitmapFactory.decodeStream(in));
             }
 
-            mainimageview.setImageBitmap(ctarray.get(0));
+            mainimageview.setImageBitmap(ctarray.get(currentSection));
             System.out.println("Image is set in the ImageView");
 
 
@@ -230,6 +233,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
            boolean fromUser) {
                mainimageview.setImageBitmap(ctarray.get(progress));
                seekBarValue.setText("Z position "+String.valueOf(progress));
+               currentSection = progress;
            }
 
            @Override
@@ -246,8 +250,51 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         mainimageview.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                System.out.println("Touch on the main image view is observed");
-                return false;
+                if(event.getAction() == MotionEvent.ACTION_UP) {
+                    float screenX = event.getX();
+                    float screenY = event.getY();
+                    float viewX = screenX - v.getLeft();
+                    float viewY = screenY - v.getTop();
+                    //System.out.println("View top left and top are "+Float.toString(v.getTop())+" "+Float.toString(v.getLeft()));
+                    //System.out.println("Point touched on the screen is "+Float.toString(viewX)+" "+Float.toString(viewY));
+//                    int hw = v.getWidth();
+//                    int hh = v.getHeight();
+//                    System.out.println("Width "+Integer.toString(hw)+" Height "+Integer.toString(hh));
+
+                    Matrix inverse = new Matrix();
+                    mainimageview.getImageMatrix().invert(inverse);
+                    float[] touchPoint = new float[] {event.getX(), event.getY()};
+                    inverse.mapPoints(touchPoint);
+                    int xCoord = Integer.valueOf((int)touchPoint[0]);
+                    int yCoord = Integer.valueOf((int)touchPoint[1]);
+
+                    Bitmap sourceBitmap = ctarray.get(currentSection);
+
+                    System.out.println("Crop Image Coordinates are ("+Integer.toString(xCoord)+", "+
+                            Integer.toString(yCoord)+"), ("+
+                            Integer.toString(xCoord-50)+", "+
+                            Integer.toString(yCoord-50)+", "+
+                            Integer.toString(xCoord+50)+", "+
+                            Integer.toString(yCoord+50)+"), ("+
+                            Integer.toString(selectedSection.getHeight())+", "+
+                            Integer.toString(selectedSection.getWidth())+"), ("+
+                            Integer.toString(ctarray.get(currentSection).getHeight())+ ", "+
+                            Integer.toString(ctarray.get(currentSection).getWidth())+")"
+                    );
+
+
+                    Bitmap selectedImage = Bitmap.createBitmap(ctarray.get(currentSection), xCoord-50,
+                            yCoord-50, 100, 100);
+
+                    selectedSection.setImageBitmap(selectedImage);
+
+                    //selectedSection.setImageBitmap(BitmapFactory.decodeStream(ind));
+
+                    //System.out.println("Inverse Coordinates are "+Integer.toString(xCoord)+", "+Integer.toString(yCoord));
+                    return true;
+                }
+
+                return true;
             }
         });
 
