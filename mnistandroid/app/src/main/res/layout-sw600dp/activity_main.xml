@@ -36,7 +36,7 @@
 
         <SeekBar
             android:id="@+id/seekBar"
-            android:max="20"
+            android:max="300"
             android:progress="1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>

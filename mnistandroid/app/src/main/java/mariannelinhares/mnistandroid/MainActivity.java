@@ -60,6 +60,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 // basic list
+import java.util.Arrays;
 import java.util.List;
 //encapsulates a classified image
 //public interface to the classification class, exposing a name and the recognize function
@@ -88,6 +89,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     private TextView resText;
 
     private List<Classifier> mClassifiers = new ArrayList<>();
+    ArrayList<Bitmap> ctarray = new ArrayList<Bitmap>();
 
     private ImageView mainimageview;
     private ImageView axial;
@@ -169,12 +171,13 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
             File directory = new File("/storage/self/primary/Pictures/convertedpng/");
             File[] files = directory.listFiles();
-            ArrayList<Bitmap> ctarray = new ArrayList<Bitmap>();
+            Arrays.sort(files);
 
             System.out.println("Reading CT files");
 
             for(int fi=0; fi<files.length;++fi){
                 FileInputStream in = null;
+                System.out.println("File path is "+files[fi]);
                 try {
                     in = new FileInputStream(new File(files[fi].getPath()));
                 } catch (FileNotFoundException e) {
@@ -225,7 +228,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
            @Override
            public void onProgressChanged(SeekBar seekBar, int progress,
            boolean fromUser) {
-               // TODO Auto-generated method stub
+               mainimageview.setImageBitmap(ctarray.get(progress));
                seekBarValue.setText("Z position "+String.valueOf(progress));
            }
 
@@ -239,6 +242,14 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                // TODO Auto-generated method stub
            }
        });
+
+        mainimageview.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                System.out.println("Touch on the main image view is observed");
+                return false;
+            }
+        });
 
         // tensorflow
         //load up our saved model to perform inference from local storage
@@ -288,6 +299,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             }
         }).start();
     }
+
+
 
     @Override
     public void onClick(View view) {
