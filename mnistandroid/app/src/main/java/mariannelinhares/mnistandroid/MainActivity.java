@@ -32,10 +32,12 @@ import android.app.Activity;
 //PointF holds two float coordinates
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.PointF;
 //A mapping from String keys to various Parcelable values (interface for data container values, parcels)
 import android.media.Image;
+import android.os.AsyncTask;
 import android.os.Bundle;
 //Object used to report movement (mouse, pen, finger, trackball) events.
 // //Motion events may hold either absolute or relative movements and other data, depending on the type of device.
@@ -84,6 +86,22 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     private static final int PIXEL_WIDTH = 28;
     private final int FLAG_TO_READ = 1;
 
+    // numbers are calculated to obtain a volume of size 50x50x50
+    double[] interp_x = new double[87];
+    double[] interp_y = new double[87];
+    double[] interp_z = new double[18];
+
+    // values for interpolation
+    double[][][] interp_values  = new double[87][87][18];
+
+    // for storing the touch coordinates
+    float screenX;
+    float screenY;
+
+    // x and y coordinate calculate by touch
+    int xCoord;
+    int yCoord;
+
     // ui elements
     private Button clearBtn, classBtn;
     private TextView probtext;
@@ -100,6 +118,9 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
     int currentSection = 0;
 
+    double thickness_x_y = 0.58203125;
+    double thickness_z   = 3.0;
+
     // views
     private DrawModel drawModel;
     private PointF    mTmpPiont = new PointF();
@@ -107,8 +128,129 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     private float mLastX;
     private float mLastY;
 
-    private int[] intValues;
+    private int[]   intValues;
     private float[] floatValues;
+
+    // the interpolation object
+    TriCubicInterpolation tci3;
+
+    Bitmap get_section(int section_name){
+
+        System.out.println("Inside the method get_section Bitmap, "+Integer.toString(section_name));
+
+        int pixelsIndex = 0;
+        Bitmap.Config conf = Bitmap.Config.ARGB_8888; // see other conf types
+        Bitmap bmp = Bitmap.createBitmap(50, 50,  conf);
+
+        if (section_name == 0){
+            // Axial section
+            for (int i = 0; i < 50; i++) {
+                for (int j = 0; j < 50; j++) {
+                    int t = (int) (tci3.interpolate(i, j, 25)*255);
+                    if(t <0)
+                        t= 0;
+                    //System.out.println("Color value is "+Integer.toString(t));
+                    int c = Color.argb(255, t, t, t);
+                    bmp.setPixel(i, j, c);
+                }
+            }
+        }
+        else if(section_name == 1){
+            // Sagattial section
+            for (int j = 0; j < 50; j++) {
+                for (int k = 0; k < 50; k++) {
+                    int t = (int) (tci3.interpolate(25, j, k)*255);
+                    if(t <0)
+                        t= 0;
+                    int c = Color.argb(255, t, t, t);
+                    //System.out.println("Color value is "+Integer.toString(t));
+                    bmp.setPixel(j, k, c);
+                    //bmp.setPixel(k, j, c);
+                }
+            }
+        }
+        else{
+            // Coronnal section
+            for (int i = 0; i < 50; i++) {
+                for (int k = 0; k < 50; k++) {
+                    int t = (int) (tci3.interpolate(i, 25, k)*255);
+                    if(t <0)
+                        t= 0;
+                    int c = Color.argb(255, t, t, t);
+                    //System.out.println("Color value is "+Integer.toString(t));
+                    bmp.setPixel(i, k, c);
+                }
+            }
+        }
+
+        return bmp;
+    }
+
+    // creates the index for the interpolation array
+    void create_interpolate_array_index(){
+        int count =0;
+
+        for(int k=0; k < 18; ++k){ // z
+            for (int i = 0; i < 87; ++i) { // x
+                for (int j = 0; j < 87; ++j) { // y
+
+                    interp_x[i] = i*thickness_x_y;
+                    interp_y[j] = j*thickness_x_y;
+                    interp_z[k] = k*thickness_z;
+
+                    count = count +1;
+                }
+            }
+        }
+        return;
+    }
+
+    // fill the array for interpolating the values
+    // [x][y][z]
+    void fill_interpolate_array(){
+
+//        AsyncTask task = new AsyncTask(){
+//            protected void onPostExecute(String result) {
+//                //Do your thing
+//            }
+//
+//        };
+
+        //AsyncTask.execute(new Runnable() {
+          //  @Override
+            //public void run() {
+                for(int k=0; k < 18; ++k) {
+                    int curr_index = currentSection - 8 + k;
+                    Bitmap selectedImage = Bitmap.createBitmap(ctarray.get(curr_index), xCoord - 43,
+                            yCoord - 43, 87, 87);
+                    for (int i = 0; i < 87; ++i) {
+                        for (int j = 0; j < 87; ++j) {
+                            // since red, green and blue color are all same in a grayscale image
+                            interp_values[i][j][k] = Color.red(selectedImage.getPixel(i, j))/255.0;
+                        }
+                    }
+                }
+
+                tci3 = null;
+                // create a new interpolation object
+                tci3 = new TriCubicInterpolation(interp_x, interp_y, interp_z, interp_values, 0);
+                System.out.println("Created a new Interpolation Object");
+
+                tci3.displayLimits();
+
+                Bitmap axial_image      = get_section(0);
+                Bitmap sagattial_image  = get_section(1);
+                Bitmap coronal_image    = get_section(2);
+
+                axial.setImageBitmap(axial_image);
+                sagittal.setImageBitmap(sagattial_image);
+                coronal.setImageBitmap(coronal_image);
+
+            //}
+        //});
+
+        return;
+    }
 
 
     void read_the_input_image(){
@@ -131,6 +273,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         return;
     }
+
     @Override
     // In the onCreate() method, you perform basic application startup logic that should happen
     //only once for the entire life of the activity.
@@ -143,19 +286,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         //when tapped, this performs classification on the drawn image
         classBtn = (Button) findViewById(R.id.btn_class);
         classBtn.setOnClickListener(this);
-
-//        double[] x1 = {0.0,	1.0, 2.0, 3.0, 4.0, 5.0};
-//        double[] x2 = {1.0, 5.0, 9.0, 13.0, 17.0, 21.0, 25.0, 29.0, 33.0, 37.0};
-//        double[] x3 = {6.0,	7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
-//        double[][][] y     = new double[6][10][7];
-//        TriCubicInterpolation tci3 = new TriCubicInterpolation(x1, x2, x3, y, 0);
-//        double xx1 = 0.0;
-//        double xx2 = 0.0;
-//        double xx3 = 0.0;
-//        double y3  = 0.0;
-//        //double ans = tci3.interpolate(3.2, 5.2, 10.5);
-//        double ans = tci3.interpolate(0, 0, 0);
-//        System.out.println("Output of interpolation is "+ans);
+        
 
 
         // res text
@@ -221,6 +352,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         // read the input image to be passed to the tensorflow classifier model
         read_the_input_image();
 
+        create_interpolate_array_index();
+
         SeekBar seekBar = (SeekBar)findViewById(R.id.seekBar);
         final TextView seekBarValue = (TextView)findViewById(R.id.simpleTextView4);
 
@@ -251,22 +384,15 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if(event.getAction() == MotionEvent.ACTION_UP) {
-                    float screenX = event.getX();
-                    float screenY = event.getY();
-                    float viewX = screenX - v.getLeft();
-                    float viewY = screenY - v.getTop();
-                    //System.out.println("View top left and top are "+Float.toString(v.getTop())+" "+Float.toString(v.getLeft()));
-                    //System.out.println("Point touched on the screen is "+Float.toString(viewX)+" "+Float.toString(viewY));
-//                    int hw = v.getWidth();
-//                    int hh = v.getHeight();
-//                    System.out.println("Width "+Integer.toString(hw)+" Height "+Integer.toString(hh));
+                    screenX = event.getX();
+                    screenY = event.getY();
 
                     Matrix inverse = new Matrix();
                     mainimageview.getImageMatrix().invert(inverse);
-                    float[] touchPoint = new float[] {event.getX(), event.getY()};
+                    float[] touchPoint = new float[] {screenX, screenY};
                     inverse.mapPoints(touchPoint);
-                    int xCoord = Integer.valueOf((int)touchPoint[0]);
-                    int yCoord = Integer.valueOf((int)touchPoint[1]);
+                    xCoord = Integer.valueOf((int)touchPoint[0]);
+                    yCoord = Integer.valueOf((int)touchPoint[1]);
 
                     Bitmap sourceBitmap = ctarray.get(currentSection);
 
@@ -283,14 +409,34 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     );
 
 
-                    Bitmap selectedImage = Bitmap.createBitmap(ctarray.get(currentSection), xCoord-50,
-                            yCoord-50, 100, 100);
+                    Bitmap selectedImage = Bitmap.createBitmap(ctarray.get(currentSection), xCoord-43,
+                            yCoord-43, 86, 86);
 
+//                    for(int pk=0;pk<86;pk++){
+//                        for(int qk=0;qk<86;++qk){
+//                            int pc = selectedImage.getPixel(pk, qk);
+//
+//                            System.out.println(Integer.toString(Color.alpha(pc))+","+
+//                                    Integer.toString(Color.red(pc))+","+
+//                                    Integer.toString(Color.green(pc))+","+
+//                                    Integer.toString(Color.blue(pc)));
+//                        }
+//                    }
+                    //selectedSection.setImageBitmap(selectedImage);
+
+                    // interpolate the volume
+                    fill_interpolate_array();
+
+//                    for(int p=0;p<87;++p){
+//                        for(int q=0;q<87;++q){
+//                            //selectedImage.se
+//                        }
+//                    }
+
+                    //System.out.println("Number of colors in the selectedImage is "+Integer.toString(selectedImage.get));
+                    //tci3
                     selectedSection.setImageBitmap(selectedImage);
 
-                    //selectedSection.setImageBitmap(BitmapFactory.decodeStream(ind));
-
-                    //System.out.println("Inverse Coordinates are "+Integer.toString(xCoord)+", "+Integer.toString(yCoord));
                     return true;
                 }
 
