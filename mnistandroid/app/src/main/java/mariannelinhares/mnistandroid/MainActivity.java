@@ -87,10 +87,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     private final int FLAG_TO_READ = 1;
 
     // numbers are calculated to obtain a volume of size 50x50x50
-    double[] interp_x = new double[87];
-    double[] interp_y = new double[87];
-    double[] interp_z = new double[18];
-
     // values for interpolation
     double[][][] interp_values  = new double[87][87][18];
 
@@ -132,7 +128,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     private float[] floatValues;
 
     // the interpolation object
-    TriCubicInterpolation tci3;
+    //TriCubicInterpolation tci3;
 
     Bitmap get_section(int section_name){
 
@@ -146,8 +142,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             // Axial section
             for (int i = 0; i < 50; i++) {
                 for (int j = 0; j < 50; j++) {
-                    int t = (int) (tci3.interpolate(i, j, 25)*255);
-                    if(t <0)
+                    int t = (int) (interpolate(i, j, 25)*255);
+                    if(t < 0)
                         t= 0;
                     //System.out.println("Color value is "+Integer.toString(t));
                     int c = Color.argb(255, t, t, t);
@@ -159,7 +155,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             // Sagattial section
             for (int j = 0; j < 50; j++) {
                 for (int k = 0; k < 50; k++) {
-                    int t = (int) (tci3.interpolate(25, j, k)*255);
+                    int t = (int) (interpolate(25, j, k)*255);
                     if(t <0)
                         t= 0;
                     int c = Color.argb(255, t, t, t);
@@ -173,7 +169,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             // Coronnal section
             for (int i = 0; i < 50; i++) {
                 for (int k = 0; k < 50; k++) {
-                    int t = (int) (tci3.interpolate(i, 25, k)*255);
+                    int t = (int) (interpolate(i, 25, k)*255);
                     if(t <0)
                         t= 0;
                     int c = Color.argb(255, t, t, t);
@@ -186,23 +182,36 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         return bmp;
     }
 
-    // creates the index for the interpolation array
-    void create_interpolate_array_index(){
-        int count =0;
+    double interpolate(double x, double y, double z){
+        double v000, v100, v010, v001, v101, v011, v110, v111;
 
-        for(int k=0; k < 18; ++k){ // z
-            for (int i = 0; i < 87; ++i) { // x
-                for (int j = 0; j < 87; ++j) { // y
+        int zindex = (int) (z/thickness_z);
+        int xindex = (int) (x/thickness_x_y);
+        int yindex = (int) (y/thickness_x_y);
 
-                    interp_x[i] = i*thickness_x_y;
-                    interp_y[j] = j*thickness_x_y;
-                    interp_z[k] = k*thickness_z;
+        x = x - xindex*thickness_x_y;
+        y = y - yindex*thickness_x_y;
+        z = z - zindex*thickness_z;
 
-                    count = count +1;
-                }
-            }
-        }
-        return;
+        v000 = interp_values[xindex][yindex][zindex];
+        v100 = interp_values[xindex+1][yindex][zindex];
+        v010 = interp_values[xindex][yindex+1][zindex];
+        v110 = interp_values[xindex+1][yindex+1][zindex];
+        v001 = interp_values[xindex][yindex][zindex+1];
+        v101 = interp_values[xindex+1][yindex][zindex+1];
+        v011 = interp_values[xindex][yindex+1][zindex+1];
+        v111 = interp_values[xindex+1][yindex+1][zindex+1];
+
+        return  (
+                    v000*(thickness_x_y-x)*(thickness_x_y-y)*(thickness_z-z)+
+                    v100*x*(thickness_x_y-y)*(thickness_z-z)+
+                    v010*(thickness_x_y-x)*y*(thickness_z-z)+
+                    v001*(thickness_x_y-x)*(thickness_x_y-y)*z+
+                    v101*x*(thickness_x_y-y)*z+
+                    v011*(thickness_x_y-x)*y*z+
+                    v110*x*y*(thickness_z-z)+
+                    v111*x*y*z
+                ) /(thickness_x_y*thickness_x_y*thickness_z);
     }
 
     // fill the array for interpolating the values
@@ -231,12 +240,12 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     }
                 }
 
-                tci3 = null;
+                //tci3 = null;
                 // create a new interpolation object
-                tci3 = new TriCubicInterpolation(interp_x, interp_y, interp_z, interp_values, 0);
+                //tci3 = new TriCubicInterpolation(interp_x, interp_y, interp_z, interp_values, 0);
                 System.out.println("Created a new Interpolation Object");
 
-                tci3.displayLimits();
+                //tci3.displayLimits();
 
                 Bitmap axial_image      = get_section(0);
                 Bitmap sagattial_image  = get_section(1);
@@ -286,7 +295,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         //when tapped, this performs classification on the drawn image
         classBtn = (Button) findViewById(R.id.btn_class);
         classBtn.setOnClickListener(this);
-        
+
 
 
         // res text
@@ -303,7 +312,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 225);
 
         if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            File directory = new File("/storage/self/primary/Pictures/convertedpng/");
+            File directory = new File("/storage/self/primary/Pictures/converted/");
             File[] files = directory.listFiles();
             Arrays.sort(files);
 
@@ -351,8 +360,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         // read the input image to be passed to the tensorflow classifier model
         read_the_input_image();
-
-        create_interpolate_array_index();
 
         SeekBar seekBar = (SeekBar)findViewById(R.id.seekBar);
         final TextView seekBarValue = (TextView)findViewById(R.id.simpleTextView4);
