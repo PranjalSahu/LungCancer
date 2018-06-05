@@ -41,6 +41,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 //Object used to report movement (mouse, pen, finger, trackball) events.
 // //Motion events may hold either absolute or relative movements and other data, depending on the type of device.
+import android.os.Environment;
 import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
@@ -60,6 +61,7 @@ import android.widget.TextView;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 // basic list
@@ -135,7 +137,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
     Bitmap get_section(int section_name){
 
-        System.out.println("Inside the method get_section Bitmap, "+Integer.toString(section_name));
+        Log.d("MYAPP", "Inside the method get_section Bitmap, "+Integer.toString(section_name));
 
         int pixelsIndex = 0;
         Bitmap.Config conf = Bitmap.Config.ARGB_8888; // see other conf types
@@ -255,7 +257,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 //tci3 = null;
                 // create a new interpolation object
                 //tci3 = new TriCubicInterpolation(interp_x, interp_y, interp_z, interp_values, 0);
-                System.out.println("Created a new Interpolation Object");
+                Log.d("MYAPP", "Created a new Interpolation Object");
 
                 //tci3.displayLimits();
 
@@ -269,6 +271,34 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
             //}
         //});
+
+        ArrayList<Bitmap> allsections  = get_rotated_sections();
+        int sectioncount = 0;
+        for(Bitmap bmp_temp:allsections){
+            System.out.println("Saving Interpolated Image "+Integer.toString(sectioncount));
+
+            FileOutputStream outf = null;
+            File sd = Environment.getExternalStorageDirectory();
+            File dest = new File(sd, "section"+Integer.toString(sectioncount)+".png");
+            System.out.println("File created " + dest.getAbsolutePath());
+
+            try {
+                //outf = new FileOutputStream("/storage/self/primary/Pictures/section"++".png");
+                outf = new FileOutputStream(dest);
+                bmp_temp.compress(Bitmap.CompressFormat.PNG, 100, outf);
+                outf.flush();
+                outf.close();
+            } catch (FileNotFoundException e) {
+                System.out.println("Saving Interpolated Image with Error");
+                e.printStackTrace();
+            } catch (IOException e) {
+                System.out.println("Saving Interpolated Image with IO Error");
+                e.printStackTrace();
+            }
+
+            sectioncount = sectioncount+1;
+
+        }
 
         return;
     }
@@ -464,7 +494,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         });
 
         // Dummy code to print the coordinates of the section
-        get_rotated_sections();
+
 
         // tensorflow
         //load up our saved model to perform inference from local storage
@@ -556,7 +586,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         return return_ans;
     }
 
-    void get_rotated_sections(){
+    ArrayList<Bitmap> get_rotated_sections(){
         ArrayList<Bitmap> allsections = new ArrayList<Bitmap>();
 
         for(int divb=0; divb < divisions+1; ++divb){
@@ -582,9 +612,9 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 int count = 0;
                 for(int i=0;i<50;++i){
                     for(int j=0;j<50;++j){
-                        yy[count] = j;
-                        zz[count] = j;
-                        xx[count] = -25;
+                        yy[count] = j-25;
+                        zz[count] = j-25;
+                        xx[count] = 0;
                         count = count+1;
                     }
                 }
@@ -625,22 +655,50 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     val2_prime_row2[i] = val2_prime_row2[i]+25;
                     val2_prime_row3[i] = val2_prime_row3[i]+25;
 
-                    System.out.println(Double.toString(val2_prime_row1[i])+" , "+ Double.toString(val2_prime_row2[i])+", "+ Double.toString(val2_prime_row3[i]));
+                    if(val2_prime_row1[i] > 50)
+                        val2_prime_row1[i] = 50;
+                    if(val2_prime_row2[i] > 50)
+                        val2_prime_row2[i] = 50;
+                    if(val2_prime_row3[i] > 50)
+                        val2_prime_row3[i] = 50;
+
+                    if(val2_prime_row1[i] < 0)
+                        val2_prime_row1[i] = 0;
+                    if(val2_prime_row2[i] < 0)
+                        val2_prime_row2[i] = 0;
+                    if(val2_prime_row3[i] < 0)
+                        val2_prime_row3[i] = 0;
+
+                    //System.out.println(Double.toString(val2_prime_row1[i])+" , "+ Double.toString(val2_prime_row2[i])+", "+ Double.toString(val2_prime_row3[i]));
                 }
 
+                Bitmap.Config conf = Bitmap.Config.ARGB_8888; // see other conf types
+                Bitmap bmp = Bitmap.createBitmap(50, 50,  conf);
+
+                int countimg = 0;
+
+                for (int i = 0; i < 50; i++) {
+                    for (int j = 0; j < 50; j++) {
+                        int t = (int) (interpolate(val2_prime_row1[countimg], val2_prime_row2[countimg], val2_prime_row3[countimg])*255);
+
+                        //System.out.println("Interpolated value is "+Integer.toString(i)+", "+Integer.toString(j)+" > "+Integer.toString(t));
+
+                        int c = Color.argb(255, t, t, t);
+                        bmp.setPixel(i, j, c);
+                        countimg = countimg+1;
+                    }
+                }
+
+                allsections.add(bmp);
             }
         }
 
+        return allsections;
     }
 
     @Override
     public void onClick(View view) {
         if (view.getId() == R.id.btn_class) {
-
-
-
-
-
 
             Classifier classifier = mClassifiers.get(0);
             long startTime = SystemClock.uptimeMillis();
