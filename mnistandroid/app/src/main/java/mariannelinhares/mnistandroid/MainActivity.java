@@ -67,6 +67,7 @@ import java.util.ArrayList;
 // basic list
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 //encapsulates a classified image
 //public interface to the classification class, exposing a name and the recognize function
 import flanagan.interpolation.*;
@@ -131,6 +132,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
     private int[]   intValues;
     private float[] floatValues;
+
+    Random randomObject = new Random();
 
     // the interpolation object
     //TriCubicInterpolation tci3;
@@ -273,6 +276,9 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         //});
 
         ArrayList<Bitmap> allsections  = get_rotated_sections();
+
+        sagittal.setImageBitmap(allsections.get(randomObject.nextInt(allsections.size())));
+
         int sectioncount = 0;
         for(Bitmap bmp_temp:allsections){
             System.out.println("Saving Interpolated Image "+Integer.toString(sectioncount));
@@ -588,6 +594,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
     ArrayList<Bitmap> get_rotated_sections(){
         ArrayList<Bitmap> allsections = new ArrayList<Bitmap>();
+        int sectionImagecount = 0;
 
         for(int divb=0; divb < divisions+1; ++divb){
             for(int diva=0; diva < divisions+1; ++diva){
@@ -613,7 +620,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 for(int i=0;i<50;++i){
                     for(int j=0;j<50;++j){
                         yy[count] = j-25;
-                        zz[count] = j-25;
+                        zz[count] = i-25;
                         xx[count] = 0;
                         count = count+1;
                     }
@@ -631,7 +638,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     val1_prime_row2[i] = rt1[3]*xx[i] + rt1[4]*yy[i] + rt1[5]*zz[i];
                     val1_prime_row3[i] = rt1[6]*xx[i] + rt1[7]*yy[i] + rt1[8]*zz[i];
                 }
-
 
                 double [] newaxis = {rt1[3], rt1[4], rt1[5]};
                 double newaxissum = 0;
@@ -673,15 +679,15 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 }
 
                 Bitmap.Config conf = Bitmap.Config.ARGB_8888; // see other conf types
-                Bitmap bmp = Bitmap.createBitmap(50, 50,  conf);
+                Bitmap bmp         = Bitmap.createBitmap(50, 50,  conf);
 
                 int countimg = 0;
 
                 for (int i = 0; i < 50; i++) {
                     for (int j = 0; j < 50; j++) {
                         int t = (int) (interpolate(val2_prime_row1[countimg], val2_prime_row2[countimg], val2_prime_row3[countimg])*255);
-
-                        //System.out.println("Interpolated value is "+Integer.toString(i)+", "+Integer.toString(j)+" > "+Integer.toString(t));
+                        if(sectionImagecount == 0)
+                            System.out.println("Coordinate is ("+val2_prime_row1[countimg]+","+val2_prime_row2[countimg]+","+val2_prime_row3[countimg]+")");
 
                         int c = Color.argb(255, t, t, t);
                         bmp.setPixel(i, j, c);
@@ -690,6 +696,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 }
 
                 allsections.add(bmp);
+                sectionImagecount = sectionImagecount+1;
             }
         }
 
