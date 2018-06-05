@@ -36,7 +36,7 @@
 
         <SeekBar
             android:id="@+id/seekBar"
-            android:max="300"
+            android:max="120"
             android:progress="1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
@@ -116,7 +116,7 @@
                     android:textSize="20sp"
                     android:layout_centerHorizontal="true"
                     android:textStyle="bold"
-                    android:text="Coronnal"/>
+                    android:text="Coronal"/>
 
 
                 <ImageView

@@ -114,6 +114,9 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
     int currentSection = 0;
 
+    int divisions = 3;
+    double div    = Math.PI/divisions;
+
     double thickness_x_y = 0.58203125;
     double thickness_z   = 3.0;
 
@@ -143,8 +146,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             for (int i = 0; i < 50; i++) {
                 for (int j = 0; j < 50; j++) {
                     int t = (int) (interpolate(i, j, 25)*255);
-                    if(t < 0)
-                        t= 0;
+                    //if(t < 0)
+                    //    t= 0;
                     //System.out.println("Color value is "+Integer.toString(t));
                     int c = Color.argb(255, t, t, t);
                     bmp.setPixel(i, j, c);
@@ -193,10 +196,19 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         y = y - yindex*thickness_x_y;
         z = z - zindex*thickness_z;
 
+//        int yindex = (int) (z/thickness_z);
+//        int xindex = (int) (x/thickness_x_y);
+//        int zindex = (int) (y/thickness_x_y);
+//
+//        x = x - xindex*thickness_x_y;
+//        z = z - zindex*thickness_x_y;
+//        y = y - yindex*thickness_z;
+
         v000 = interp_values[xindex][yindex][zindex];
         v100 = interp_values[xindex+1][yindex][zindex];
         v010 = interp_values[xindex][yindex+1][zindex];
         v110 = interp_values[xindex+1][yindex+1][zindex];
+
         v001 = interp_values[xindex][yindex][zindex+1];
         v101 = interp_values[xindex+1][yindex][zindex+1];
         v011 = interp_values[xindex][yindex+1][zindex+1];
@@ -262,26 +274,26 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     }
 
 
-    void read_the_input_image(){
-        // reading the image file to get the time taken to get the inference
-        File imgFile = new  File("/sdcard/Pictures/1.jpg");
-        Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
-
-        // array to read all the pixel values which will feed into the tensorflow model
-        intValues = new int[myBitmap.getHeight() * myBitmap.getWidth()];
-        floatValues = new float[myBitmap.getHeight() * myBitmap.getWidth() * 3*10];
-        myBitmap.getPixels(intValues, 0, myBitmap.getWidth(), 0, 0, myBitmap.getWidth(), myBitmap.getHeight());
-        for (int i = 0; i < intValues.length; ++i) {
-            final int val = intValues[i];
-            floatValues[i * 3] = ((val >> 16) & 0xFF) / 255.0f;
-            floatValues[i * 3 + 1] = ((val >> 8) & 0xFF) / 255.0f;
-            floatValues[i * 3 + 2] = (val & 0xFF) / 255.0f;
-        }
-
-        Log.d("TIME_TO_FEED", "Height of the Image is: " + Integer.toString(myBitmap.getHeight())+" : Widht is : "+Integer.toString(myBitmap.getWidth()));
-
-        return;
-    }
+//    void read_the_input_image(){
+//        // reading the image file to get the time taken to get the inference
+//        File imgFile = new  File("/sdcard/Pictures/1.jpg");
+//        Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+//
+//        // array to read all the pixel values which will feed into the tensorflow model
+//        intValues = new int[myBitmap.getHeight() * myBitmap.getWidth()];
+//        floatValues = new float[myBitmap.getHeight() * myBitmap.getWidth() * 3*10];
+//        myBitmap.getPixels(intValues, 0, myBitmap.getWidth(), 0, 0, myBitmap.getWidth(), myBitmap.getHeight());
+//        for (int i = 0; i < intValues.length; ++i) {
+//            final int val = intValues[i];
+//            floatValues[i * 3] = ((val >> 16) & 0xFF) / 255.0f;
+//            floatValues[i * 3 + 1] = ((val >> 8) & 0xFF) / 255.0f;
+//            floatValues[i * 3 + 2] = (val & 0xFF) / 255.0f;
+//        }
+//
+//        Log.d("TIME_TO_FEED", "Height of the Image is: " + Integer.toString(myBitmap.getHeight())+" : Widht is : "+Integer.toString(myBitmap.getWidth()));
+//
+//        return;
+//    }
 
     @Override
     // In the onCreate() method, you perform basic application startup logic that should happen
@@ -359,7 +371,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
 
         // read the input image to be passed to the tensorflow classifier model
-        read_the_input_image();
+        //read_the_input_image();
 
         SeekBar seekBar = (SeekBar)findViewById(R.id.seekBar);
         final TextView seekBarValue = (TextView)findViewById(R.id.simpleTextView4);
@@ -451,6 +463,9 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             }
         });
 
+        // Dummy code to print the coordinates of the section
+        get_rotated_sections();
+
         // tensorflow
         //load up our saved model to perform inference from local storage
         loadModel();
@@ -501,10 +516,132 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     }
 
 
+    double[] rotation_matrix(double[] axis, double theta) {
+        double dotvalue = 0;
+        for(int i=0;i<3;++i){
+            dotvalue = dotvalue+axis[i]*axis[i];
+        }
+        dotvalue = Math.sqrt(dotvalue);
+        for(int i=0;i<3;++i){
+            axis[i] = axis[i]/dotvalue;
+        }
+
+        double a = Math.cos(theta / 2.0);
+        double b, c, d, aa, bb, cc, dd;
+        double bc, ad, ac, ab, bd, cd;
+
+        b = -axis[0]* Math.sin(theta / 2.0);
+        c = -axis[1]* Math.sin(theta / 2.0);
+        d = -axis[2]* Math.sin(theta / 2.0);
+
+        aa = a*a;
+        bb = b*b;
+        cc = c*c;
+        dd = d*d;
+
+        bc = b*c;
+        ad = a*d;
+        ac = a*c;
+        ab = a*b;
+        bd = b*d;
+        cd = c*d;
+
+        double [] return_ans = {
+                                    aa+bb-cc-dd,   2 * (bc + ad),
+                                    2 * (bd - ac), 2 * (bc - ad),
+                                    aa + cc - bb - dd, 2 * (cd + ab),
+                                    2 * (bd + ac), 2 * (cd - ab),
+                                    aa + dd - bb - cc
+                                };
+        return return_ans;
+    }
+
+    void get_rotated_sections(){
+        ArrayList<Bitmap> allsections = new ArrayList<Bitmap>();
+
+        for(int divb=0; divb < divisions+1; ++divb){
+            for(int diva=0; diva < divisions+1; ++diva){
+                double anglea = diva*div;
+                double angleb = divb*div;
+
+                double x = Math.cos(anglea)*Math.sin(angleb);
+                double y = Math.sin(anglea)*Math.sin(angleb);
+                double z = Math.cos(angleb);
+
+                double [] normal = {x, y, z};
+                for(int i=0;i<3;++i){
+                    if(Math.abs(normal[i]) < 0.000001){
+                        normal[i] = 0;
+                    }
+                }
+
+                double [] yy = new double[2500];
+                double [] zz = new double[2500];
+                double [] xx = new double[2500];
+
+                int count = 0;
+                for(int i=0;i<50;++i){
+                    for(int j=0;j<50;++j){
+                        yy[count] = j;
+                        zz[count] = j;
+                        xx[count] = -25;
+                        count = count+1;
+                    }
+                }
+
+                double [] axis1 = {0, 0, 1};
+                double [] rt1 = rotation_matrix(axis1, anglea);
+
+                double [] val1_prime_row1 = new double[2500];
+                double [] val1_prime_row2 = new double[2500];
+                double [] val1_prime_row3 = new double[2500];
+
+                for(int i=0; i<2500; ++i){
+                    val1_prime_row1[i] = rt1[0]*xx[i] + rt1[1]*yy[i] + rt1[2]*zz[i];
+                    val1_prime_row2[i] = rt1[3]*xx[i] + rt1[4]*yy[i] + rt1[5]*zz[i];
+                    val1_prime_row3[i] = rt1[6]*xx[i] + rt1[7]*yy[i] + rt1[8]*zz[i];
+                }
+
+
+                double [] newaxis = {rt1[3], rt1[4], rt1[5]};
+                double newaxissum = 0;
+                for(int i=0;i<3;++i){
+                    newaxissum = newaxissum+newaxis[i]*newaxis[i];
+                }
+                newaxissum = Math.sqrt(newaxissum);
+
+                double [] rt2 = rotation_matrix(newaxis, angleb);
+
+                double [] val2_prime_row1 = new double[2500];
+                double [] val2_prime_row2 = new double[2500];
+                double [] val2_prime_row3 = new double[2500];
+
+                for(int i=0; i<2500; ++i){
+                    val2_prime_row1[i] = rt1[0]*val1_prime_row1[i] + rt1[1]*val1_prime_row2[i] + rt1[2]*val1_prime_row3[i];
+                    val2_prime_row2[i] = rt1[3]*val1_prime_row1[i] + rt1[4]*val1_prime_row2[i] + rt1[5]*val1_prime_row3[i];
+                    val2_prime_row3[i] = rt1[6]*val1_prime_row1[i] + rt1[7]*val1_prime_row2[i] + rt1[8]*val1_prime_row3[i];
+
+                    val2_prime_row1[i] = val2_prime_row1[i]+25;
+                    val2_prime_row2[i] = val2_prime_row2[i]+25;
+                    val2_prime_row3[i] = val2_prime_row3[i]+25;
+
+                    System.out.println(Double.toString(val2_prime_row1[i])+" , "+ Double.toString(val2_prime_row2[i])+", "+ Double.toString(val2_prime_row3[i]));
+                }
+
+            }
+        }
+
+    }
 
     @Override
     public void onClick(View view) {
         if (view.getId() == R.id.btn_class) {
+
+
+
+
+
+
             Classifier classifier = mClassifiers.get(0);
             long startTime = SystemClock.uptimeMillis();
             final Classification res = classifier.recognize(floatValues);
