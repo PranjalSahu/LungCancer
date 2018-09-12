@@ -310,26 +310,27 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     }
 
 
-//    void read_the_input_image(){
-//        // reading the image file to get the time taken to get the inference
-//        File imgFile = new  File("/sdcard/Pictures/1.jpg");
-//        Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
-//
-//        // array to read all the pixel values which will feed into the tensorflow model
-//        intValues = new int[myBitmap.getHeight() * myBitmap.getWidth()];
-//        floatValues = new float[myBitmap.getHeight() * myBitmap.getWidth() * 3*10];
-//        myBitmap.getPixels(intValues, 0, myBitmap.getWidth(), 0, 0, myBitmap.getWidth(), myBitmap.getHeight());
-//        for (int i = 0; i < intValues.length; ++i) {
-//            final int val = intValues[i];
-//            floatValues[i * 3] = ((val >> 16) & 0xFF) / 255.0f;
-//            floatValues[i * 3 + 1] = ((val >> 8) & 0xFF) / 255.0f;
-//            floatValues[i * 3 + 2] = (val & 0xFF) / 255.0f;
-//        }
-//
-//        Log.d("TIME_TO_FEED", "Height of the Image is: " + Integer.toString(myBitmap.getHeight())+" : Widht is : "+Integer.toString(myBitmap.getWidth()));
-//
-//        return;
-//    }
+    void read_the_input_image(){
+        // reading the image file to get the time taken to get the inference
+        File imgFile = new  File("/sdcard/Pictures/1.jpg");
+        Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+
+        // array to read all the pixel values which will feed into the tensorflow model
+        intValues = new int[myBitmap.getHeight() * myBitmap.getWidth()];
+        //floatValues = new float[myBitmap.getHeight() * myBitmap.getWidth() * 3*10];
+        floatValues = new float[myBitmap.getHeight() * myBitmap.getWidth() * 3*1];
+        myBitmap.getPixels(intValues, 0, myBitmap.getWidth(), 0, 0, myBitmap.getWidth(), myBitmap.getHeight());
+        for (int i = 0; i < intValues.length; ++i) {
+            final int val = intValues[i];
+            floatValues[i * 3] = ((val >> 16) & 0xFF) / 255.0f;
+            floatValues[i * 3 + 1] = ((val >> 8) & 0xFF) / 255.0f;
+            floatValues[i * 3 + 2] = (val & 0xFF) / 255.0f;
+        }
+
+        Log.d("TIME_TO_FEED", "Height of the Image is: " + Integer.toString(myBitmap.getHeight())+" : Widht is : "+Integer.toString(myBitmap.getWidth()));
+
+        return;
+    }
 
     @Override
     // In the onCreate() method, you perform basic application startup logic that should happen
@@ -352,6 +353,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         resText = (TextView) findViewById(R.id.tfRes);
 
         mainimageview = (ImageView) findViewById(R.id.imageView1);
+        System.out.println("Main image view is "+mainimageview.toString());
         axial    = (ImageView) findViewById(R.id.imageView21);
         coronal  = (ImageView) findViewById(R.id.imageView23);
         sagittal = (ImageView) findViewById(R.id.imageView24);
@@ -377,7 +379,11 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 ctarray.add(BitmapFactory.decodeStream(in));
             }
 
-            mainimageview.setImageBitmap(ctarray.get(currentSection));
+            currentSection = 1;
+            Bitmap tt = ctarray.get(currentSection);
+            System.out.println("Bitmap is "+tt.toString());
+            System.out.println("Size of ctarray is "+ctarray.size());
+            mainimageview.setImageBitmap(tt);
             System.out.println("Image is set in the ImageView");
 
 
@@ -407,7 +413,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
 
         // read the input image to be passed to the tensorflow classifier model
-        //read_the_input_image();
+        read_the_input_image();
 
         SeekBar seekBar = (SeekBar)findViewById(R.id.seekBar);
         final TextView seekBarValue = (TextView)findViewById(R.id.simpleTextView4);
@@ -535,10 +541,22 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 try {
                     //add 2 classifiers to our classifier arraylist
                     //the tensorflow classifier and the keras classifier
+//                    mClassifiers.add(
+//                            TensorFlowClassifier.create(getAssets(), "TensorFlow",
+//                                    "model.h5.pb", "labels.txt", PIXEL_WIDTH,
+//                                    "input_1", "output_node0", true));
                     mClassifiers.add(
                             TensorFlowClassifier.create(getAssets(), "TensorFlow",
-                                    "model.h5.pb", "labels.txt", PIXEL_WIDTH,
-                                    "input_1", "output_node0", true));
+                                    "my_model2.pb", "labels.txt", PIXEL_WIDTH,
+                                    "input_1", "fc1000/Softmax", false));
+                    mClassifiers.add(
+                            TensorFlowClassifier.create(getAssets(), "TensorFlow",
+                                    "my_model2.pb", "labels.txt", PIXEL_WIDTH,
+                                    "input_1", "fc1000/Softmax", false));
+                    mClassifiers.add(
+                            TensorFlowClassifier.create(getAssets(), "TensorFlow",
+                                    "my_model2.pb", "labels.txt", PIXEL_WIDTH,
+                                    "input_1", "fc1000/Softmax", false));
                     mClassifiers.add(
                             TensorFlowClassifier.create(getAssets(), "Keras",
                                     "opt_mnist_convnet-keras.pb", "labels.txt", PIXEL_WIDTH,
@@ -686,8 +704,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 for (int i = 0; i < 50; i++) {
                     for (int j = 0; j < 50; j++) {
                         int t = (int) (interpolate(val2_prime_row1[countimg], val2_prime_row2[countimg], val2_prime_row3[countimg])*255);
-                        if(sectionImagecount == 0)
-                            System.out.println("Coordinate is ("+val2_prime_row1[countimg]+","+val2_prime_row2[countimg]+","+val2_prime_row3[countimg]+")");
+                        //if(sectionImagecount == 0)
+                            //System.out.println("Coordinate is ("+val2_prime_row1[countimg]+","+val2_prime_row2[countimg]+","+val2_prime_row3[countimg]+")");
 
                         int c = Color.argb(255, t, t, t);
                         bmp.setPixel(i, j, c);
@@ -707,9 +725,18 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public void onClick(View view) {
         if (view.getId() == R.id.btn_class) {
 
-            Classifier classifier = mClassifiers.get(0);
-            long startTime = SystemClock.uptimeMillis();
+            Classifier classifier    = mClassifiers.get(0);
+            long startTime           = SystemClock.uptimeMillis();
             final Classification res = classifier.recognize(floatValues);
+
+            Classifier classifier1    = mClassifiers.get(0);
+            long startTime1           = SystemClock.uptimeMillis();
+            final Classification res1 = classifier1.recognize(floatValues);
+
+            Classifier classifier2    = mClassifiers.get(2);
+            long startTime2           = SystemClock.uptimeMillis();
+            final Classification res2 = classifier2.recognize(floatValues);
+
             long endTime = SystemClock.uptimeMillis();
             Log.d("TIME_TO_FEED", "Timecost to model inference: " + Long.toString(endTime - startTime));
             probtext.setText("0.86");
@@ -745,7 +772,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         //to detect, if the user has touched, which direction the users finger is
         //moving, and if they've stopped moving
 
-        //if touched
+        //if touche
         if (action == MotionEvent.ACTION_DOWN) {
             //begin drawing line
 
